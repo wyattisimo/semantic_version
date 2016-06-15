@@ -22,6 +22,8 @@ class SemanticVersion
 
   OPERATORS = SINGLE_OPERATORS.merge(RANGE_OPERATORS).freeze
 
+  attr_reader :number_components, :prerelease_components
+
   # Instantiates a new SemanticVersion.
   #
   # @param [String] version: A semantic version (see http://semver.org).
@@ -34,8 +36,8 @@ class SemanticVersion
   #
   # @param [String] version: A semantic version (see http://semver.org).
   #
-  def initialize(version)
-    @number_components, @prerelease_components, @build_metadata = parse_components(version)
+  def initialize(version_string)
+    parse_components(version_string)
   end
 
   # Compares this SemanticVersion with one or more other version numbers.
@@ -83,15 +85,15 @@ class SemanticVersion
   # @return 0 if equal, 1 if greater than, -1 if less than.
   #
   def <=>(other_version)
-    number_components, prerelease_components, _ = parse_components(other_version)
+    other_version = self.class.new(other_version)
 
     result = 0
 
     # Compare version number components.
 
-    (0..[@number_components.count, number_components.count].max-1).each do |i|
+    (0..[@number_components.count, other_version.number_components.count].max-1).each do |i|
       a = @number_components[i]
-      b = number_components[i]
+      b = other_version.number_components[i]
 
       result = if !a.nil? && b.nil?
         a == 0 ? 0 : 1
@@ -105,9 +107,9 @@ class SemanticVersion
     end
 
     if result == 0
-      if @prerelease_components.empty? && !prerelease_components.empty?
+      if @prerelease_components.empty? && !other_version.prerelease_components.empty?
         result = 1
-      elsif !@prerelease_components.empty? && prerelease_components.empty?
+      elsif !@prerelease_components.empty? && other_version.prerelease_components.empty?
         result = -1
       end
     end
@@ -115,11 +117,11 @@ class SemanticVersion
     # Compare pre-release components.
 
     if result == 0
-      (0..[@prerelease_components.count, prerelease_components.count].max-1).each do |i|
+      (0..[@prerelease_components.count, other_version.prerelease_components.count].max-1).each do |i|
         break unless result == 0
 
         a = @prerelease_components[i]
-        b = prerelease_components[i]
+        b = other_version.prerelease_components[i]
 
         result = if !a.nil? && b.nil?
           1
@@ -158,22 +160,20 @@ class SemanticVersion
 
   # Parses the given value into version components.
   #
-  # @param [String or SemanticVersion] version: A semantic version (see http://semver.org).
+  # @param [String] version: A string representation of a semantic version (see http://semver.org).
   #
   # @return An array [number_components, prerelease_components, build_metadata], where `number_components` is an array
   #         of the number components [MAJOR, MINOR, PATCH], `prerelease_components` is an array of the prerelease
   #         components, and `build_metadata` is, like, you know, the build metadata.
   #
-  private def parse_components(version)
-    return version.components if version.is_a? SemanticVersion
+  private def parse_components(version_string)
+    @number_components, extensions = version_string.to_s.split('-', 2)
+    @prerelease_components, @build_metadata = extensions.to_s.split('+', 2)
 
-    number_components, extensions = version.to_s.split('-', 2)
-    prerelease_components, build_metadata = extensions.to_s.split('+', 2)
+    @number_components = @number_components.to_s.split('.').map(&:to_i)
+    @prerelease_components = @prerelease_components.to_s.split('.').map {|c| c == c.to_i.to_s ? c.to_i : c }
 
-    number_components = number_components.to_s.split('.').map(&:to_i)
-    prerelease_components = prerelease_components.to_s.split('.').map {|c| c == c.to_i.to_s ? c.to_i : c }
-
-    return [number_components, prerelease_components, build_metadata]
+    return [@number_components, @prerelease_components, @build_metadata]
   end
 
   # Returns the string representation of the "MAJOR.MINOR.PATCH" version part.
@@ -215,7 +215,7 @@ class SemanticVersion
   # Returns the string representation of the version.
   #
   def to_s
-    number + (prerelease.nil? ? "" : "-#{prerelease}") + (build.nil? ? "" : "+#{build}")
+    "#{number}#{prerelease.nil? ? "" : "-#{prerelease}"}#{build.nil? ? "" : "+#{build}"}"
   end
 
 end

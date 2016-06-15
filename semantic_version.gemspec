@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name         = "semantic_version"
-  s.version      = "0.2"
+  s.version      = "0.2.1"
   s.date         = "2016-06-15"
   s.summary      = "A utility for comparing semantic version numbers (see: http://semver.org)."
   s.author       = "Jared Wyatt"
