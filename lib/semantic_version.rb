@@ -36,8 +36,8 @@ class SemanticVersion
   #
   # @param [String] version: A semantic version (see http://semver.org).
   #
-  def initialize(version_string)
-    parse_components(version_string)
+  def initialize(version)
+    parse_components(version)
   end
 
   # Compares this SemanticVersion with one or more other version numbers.
